@@ -1,0 +1,428 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f6f8f7;
+  color: #202a25;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+/* Navbar */
+
+.navbar {
+  height: 70px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8%;
+  border-bottom: 1px solid #e5e9e6;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #45514b;
+  font-size: 15px;
+}
+
+.login-btn {
+  border: 1px solid #2d7a55;
+  background: white;
+  color: #2d7a55;
+  padding: 9px 20px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+/* Hero */
+
+.hero {
+  max-width: 1100px;
+  margin: auto;
+  padding: 80px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 50px;
+}
+
+.hero-text {
+  max-width: 600px;
+}
+
+.small-title {
+  color: #2d7a55;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.hero h1 {
+  font-size: 58px;
+  line-height: 1.05;
+  margin: 15px 0;
+}
+
+.hero h1 span {
+  color: #2d7a55;
+}
+
+.description {
+  color: #68736d;
+  font-size: 17px;
+  line-height: 1.7;
+  max-width: 550px;
+}
+
+.report-btn {
+  margin-top: 15px;
+  background: #2d7a55;
+  color: white;
+  border: none;
+  padding: 13px 22px;
+  border-radius: 7px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.hero-card {
+  background: white;
+  width: 310px;
+  padding: 30px;
+  border-radius: 12px;
+  border: 1px solid #e0e5e2;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+.card-icon {
+  font-size: 42px;
+}
+
+.hero-card h3 {
+  margin-bottom: 8px;
+}
+
+.hero-card p {
+  color: #68736d;
+  line-height: 1.5;
+}
+
+.mini-status {
+  margin-top: 25px;
+  padding: 10px;
+  background: #eef7f1;
+  color: #2d7a55;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.mini-status span {
+  margin-right: 6px;
+}
+
+/* Issues */
+
+.issues {
+  background: white;
+  padding: 65px 8%;
+  text-align: center;
+}
+
+.issues h2,
+.how-section h2 {
+  font-size: 30px;
+  margin-bottom: 8px;
+}
+
+.section-text {
+  color: #727b76;
+}
+
+.issue-grid {
+  max-width: 1000px;
+  margin: 35px auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.issue-card {
+  text-align: left;
+  padding: 22px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fafcfb;
+}
+
+.issue-icon {
+  font-size: 30px;
+}
+
+.issue-card h3 {
+  margin-bottom: 5px;
+}
+
+.issue-card p {
+  color: #707a74;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* How section */
+
+.how-section {
+  padding: 65px 8%;
+  text-align: center;
+}
+
+.steps {
+  max-width: 900px;
+  margin: 35px auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+}
+
+.step {
+  background: white;
+  padding: 25px;
+  border: 1px solid #e2e7e4;
+  border-radius: 10px;
+}
+
+.step-number {
+  width: 35px;
+  height: 35px;
+  margin: auto;
+  border-radius: 50%;
+  background: #2d7a55;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.step p {
+  color: #707a74;
+  line-height: 1.5;
+}
+
+/* Footer */
+
+footer {
+  background: #202a25;
+  color: white;
+  text-align: center;
+  padding: 35px;
+}
+
+footer p {
+  color: #b7c0bb;
+}
+
+.copyright {
+  font-size: 13px;
+  margin-top: 25px;
+}
+
+/* Mobile */
+
+@media (max-width: 750px) {
+
+  .navbar {
+    padding: 0 20px;
+  }
+
+  .nav-links {
+    gap: 12px;
+  }
+
+  .nav-links a {
+    display: none;
+  }
+
+  .hero {
+    padding: 55px 25px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero h1 {
+    font-size: 45px;
+  }
+
+  .hero-card {
+    width: 100%;
+  }
+
+  .issue-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Login Modal */
+
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 30, 25, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.login-card {
+  width: 390px;
+  background: white;
+  border-radius: 12px;
+  padding: 35px;
+  position: relative;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.close-btn {
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  border: none;
+  background: transparent;
+  font-size: 28px;
+  color: #68736d;
+  cursor: pointer;
+}
+
+.login-icon {
+  font-size: 38px;
+  margin-bottom: 10px;
+}
+
+.login-card h2 {
+  margin: 5px 0 8px;
+}
+
+.login-card > p {
+  color: #707a74;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.login-card label {
+  display: block;
+  margin-top: 25px;
+  margin-bottom: 7px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccd5cf;
+  border-radius: 7px;
+  font-size: 15px;
+  outline: none;
+}
+
+.login-card input:focus {
+  border-color: #2d7a55;
+}
+
+.otp-btn {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  border: none;
+  border-radius: 7px;
+  background: #2d7a55;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.login-note {
+  text-align: center;
+  font-size: 12px !important;
+  margin-top: 18px;
+}
+
+/* Report Form */
+
+.report-card {
+  width: 450px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 12px;
+  padding: 35px;
+  position: relative;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.report-card h2 {
+  margin: 5px 0 8px;
+}
+
+.report-card > p {
+  color: #707a74;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.report-card label {
+  display: block;
+  margin-top: 18px;
+  margin-bottom: 7px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.report-card select,
+.report-card textarea,
+.report-card input[type="file"] {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #ccd5cf;
+  border-radius: 7px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+.report-card textarea {
+  resize: vertical;
+}
+
+.submit-report-btn {
+  width: 100%;
+  margin-top: 15px;
+  padding: 13px;
+  border: none;
+  border-radius: 7px;
+  background: #2d7a55;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
