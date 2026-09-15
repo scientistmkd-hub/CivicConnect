@@ -70,9 +70,14 @@ mongoose
     );
   });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(
-    `Civic Connect server running on http://localhost:${PORT}`
-  );
-});
+// Export app for Vercel
+module.exports = app;
+
+// Start server only when running locally
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(
+      `Civic Connect server running on http://localhost:${PORT}`
+    );
+  });
+}
