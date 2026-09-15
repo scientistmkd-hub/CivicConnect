@@ -24,7 +24,7 @@ function Login() {
       setMessage("");
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/send-otp",
+        "https://civicconnect-backend.vercel.app/api/auth/send-otp",
         {
           method: "POST",
           headers: {
@@ -63,7 +63,7 @@ function Login() {
       setMessage("");
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/verify-otp",
+        "https://civicconnect-backend.vercel.app/api/auth/verify-otp",
         {
           method: "POST",
           headers: {

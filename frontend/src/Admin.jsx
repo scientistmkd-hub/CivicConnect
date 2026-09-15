@@ -36,7 +36,7 @@ function Admin() {
       setLoadingComplaints(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/complaints"
+        "https://civicconnect-backend.vercel.app/api/complaints"
       );
 
       const data = await response.json();
@@ -71,7 +71,7 @@ function Admin() {
       setLoadingUsers(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/users"
+        "https://civicconnect-backend.vercel.app/api/users"
       );
 
       const data = await response.json();
@@ -120,7 +120,7 @@ function Admin() {
       setMessage("");
 
       const response = await fetch(
-        `http://localhost:5000/api/complaints/${complaintId}/status`,
+        `https://civicconnect-backend.vercel.app/api/complaints/${complaintId}/status`,
         {
           method: "PUT",
           headers: {
@@ -184,7 +184,7 @@ function Admin() {
       setMessage("");
 
       const response = await fetch(
-        `http://localhost:5000/api/users/${userId}/block`,
+        `https://civicconnect-backend.vercel.app/api/users/${userId}/block`,
         {
           method: "PUT",
           headers: {

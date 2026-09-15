@@ -109,7 +109,7 @@ function App() {
       formData.append("image", file);
 
       const response = await fetch(
-        "http://localhost:5000/api/upload",
+        "https://civicconnect-backend.vercel.app/api/upload",
         {
           method: "POST",
           body: formData,
@@ -188,7 +188,7 @@ function App() {
       setReportMessage("");
 
       const response = await fetch(
-        "http://localhost:5000/api/complaints",
+        "https://civicconnect-backend.vercel.app/api/complaints",
         {
           method: "POST",
           headers: {

@@ -11,7 +11,7 @@ function MyComplaints() {
     const fetchComplaints = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/complaints/user/${userId}`
+          `https://civicconnect-backend.vercel.app/api/complaints/user/${userId}`
         );
 
         const data = await response.json();
