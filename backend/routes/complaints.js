@@ -1,64 +1,77 @@
 const express = require("express");
-const { analyzeWithMultiAI } = require("../services/multiAI");
+const mongoose = require("mongoose");
 
 const Complaint = require("../models/Complaint");
+const User = require("../models/User");
 
-require("dotenv").config();
+const { analyzeWithMultiAI } = require("../services/multiAI");
+const { sendGovernmentReport } = require("../services/governmentReport");
 
 const router = express.Router();
 
-// ========================================
+
+// ============================================================
 // GET ALL COMPLAINTS
-// ========================================
+// ============================================================
 
 router.get("/", async (req, res) => {
   try {
     const complaints = await Complaint.find()
-      .populate("userId", "email")
+      .populate("userId", "name email isBlocked role")
       .sort({ createdAt: -1 });
 
-    res.json({
+    return res.json({
       success: true,
-      complaints
+      complaints,
     });
-
   } catch (error) {
-    console.error(
-      "Get Complaints Error:",
-      error
-    );
+    console.error("Get complaints error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to fetch complaints"
+      message: "Failed to fetch complaints.",
     });
   }
 });
+
+
+// ============================================================
+// GET COMPLAINTS OF ONE USER
+// ============================================================
 
 router.get("/user/:userId", async (req, res) => {
   try {
-    const complaints = await Complaint.find({
-      userId: req.params.userId
-    })
-      .sort({ createdAt: -1 });
+    const { userId } = req.params;
 
-    res.json({
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID.",
+      });
+    }
+
+    const complaints = await Complaint.find({
+      userId,
+    }).sort({ createdAt: -1 });
+
+    return res.json({
       success: true,
-      complaints
+      complaints,
     });
   } catch (error) {
-    console.error("Get User Complaints Error:", error);
+    console.error("Get user complaints error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to fetch user complaints"
+      message: "Failed to fetch user complaints.",
     });
   }
 });
 
-// ========================================
-// CREATE COMPLAINT + MULTI-AI ANALYSIS
-// ========================================
+
+// ============================================================
+// CREATE NEW COMPLAINT
+// ============================================================
 
 router.post("/", async (req, res) => {
   try {
@@ -68,271 +81,661 @@ router.post("/", async (req, res) => {
       description,
       imageUrl,
       lat,
-      lng
+      lng,
     } = req.body;
 
-    console.log(
-      "Complaint request received:",
-      req.body
-    );
 
-    // ========================================
+    // ========================================================
     // BASIC VALIDATION
-    // ========================================
+    // ========================================================
 
-    if (!userId || !category || !description) {
+    if (!userId) {
       return res.status(400).json({
         success: false,
-        message:
-          "User, category and description are required"
+        message: "User ID is required.",
       });
     }
 
-    // ========================================
-    // MULTI-AI ANALYSIS
-    // ========================================
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID.",
+      });
+    }
 
-    let aiAnalysis = "";
-    let aiPriority = "Medium";
+    if (!category || !category.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Complaint category is required.",
+      });
+    }
+
+    if (!description || !description.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Complaint description is required.",
+      });
+    }
+
+
+    // ========================================================
+    // FIND USER
+    // ========================================================
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+
+    // ========================================================
+    // BLOCKED USER PROTECTION
+    // ========================================================
+    // If admin has blocked this user, the backend itself
+    // prevents the user from creating new complaints.
+    // ========================================================
+
+    if (user.isBlocked === true) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Your account has been blocked. You cannot submit complaints.",
+      });
+    }
+
+
+    // ========================================================
+    // PREPARE COMPLAINT DATA
+    // ========================================================
+
+    const complaintDescription = description.trim();
+    const complaintCategory = category.trim();
+
+    let latitude = null;
+    let longitude = null;
+
+    if (
+      lat !== undefined &&
+      lat !== null &&
+      lat !== ""
+    ) {
+      const parsedLat = Number(lat);
+
+      if (Number.isFinite(parsedLat)) {
+        latitude = parsedLat;
+      }
+    }
+
+    if (
+      lng !== undefined &&
+      lng !== null &&
+      lng !== ""
+    ) {
+      const parsedLng = Number(lng);
+
+      if (Number.isFinite(parsedLng)) {
+        longitude = parsedLng;
+      }
+    }
+
+
+    // ========================================================
+    // MULTI-AI ANALYSIS
+    // ========================================================
+    // Providers:
+    // 1. Gemini
+    // 2. OpenAI
+    // 3. Z AI
+    // 4. OpenRouter
+    // 5. Claude
+    //
+    // The Multi-AI service handles provider availability/errors.
+    // Complaint submission should continue even if one provider
+    // is temporarily unavailable.
+    // ========================================================
+
+    let aiResult = null;
 
     try {
-
-      const aiResults =
-        await analyzeWithMultiAI(
-          category,
-          description
-        );
-
-      // Save all AI results
-      aiAnalysis =
-        JSON.stringify(aiResults);
-
-      // ========================================
-      // AI PRIORITY CONSENSUS
-      // ========================================
-
-      const priorities = [
-        "Low",
-        "Medium",
-        "High",
-        "Critical"
-      ];
-
-      const priorityVotes = {};
-
-      Object.values(aiResults).forEach(
-        (result) => {
-
-          if (
-            result &&
-            result.priority &&
-            priorities.includes(
-              result.priority
-            )
-          ) {
-
-            const priority =
-              result.priority;
-
-            priorityVotes[priority] =
-              (priorityVotes[priority] || 0) + 1;
-          }
-        }
+      aiResult = await analyzeWithMultiAI({
+        category: complaintCategory,
+        description: complaintDescription,
+        imageUrl: imageUrl || "",
+        lat: latitude,
+        lng: longitude,
+      });
+    } catch (aiError) {
+      console.error(
+        "Multi-AI analysis error:",
+        aiError
       );
 
-      console.log(
-        "AI Priority Votes:",
-        priorityVotes
-      );
+      aiResult = null;
+    }
 
-      // ========================================
-      // FIND MAJORITY PRIORITY
-      // ========================================
 
-      let highestVotes = 0;
+    // ========================================================
+    // EXTRACT AI ANALYSIS
+    // ========================================================
 
-      for (const priority of priorities) {
+    let aiAnalysis = "";
+    let priority = "Medium";
 
-        const votes =
-          priorityVotes[priority] || 0;
 
-        if (votes > highestVotes) {
+    if (aiResult) {
+      // ------------------------------------------------------
+      // Store AI analysis in a safe string format
+      // ------------------------------------------------------
 
-          highestVotes = votes;
+      if (typeof aiResult === "string") {
+        aiAnalysis = aiResult;
+      } else {
+        try {
+          aiAnalysis = JSON.stringify(
+            aiResult,
+            null,
+            2
+          );
+        } catch (stringifyError) {
+          console.error(
+            "AI result stringify error:",
+            stringifyError
+          );
 
-          aiPriority = priority;
+          aiAnalysis = "";
         }
       }
 
-      console.log(
-        "Final AI Priority:",
-        aiPriority
-      );
 
-      console.log(
-        "Priority Votes:",
-        highestVotes
-      );
+      // ------------------------------------------------------
+      // Priority detection
+      // ------------------------------------------------------
 
-    } catch (aiError) {
+      const priorityValues = [
+        "Critical",
+        "High",
+        "Medium",
+        "Low",
+      ];
 
-      console.error(
-        "Multi-AI Analysis Error:",
-        aiError.message
-      );
+      const priorityVotes = [];
 
-      aiAnalysis =
-        JSON.stringify({
-          error:
-            "Multi-AI analysis failed",
-          message:
-            aiError.message
+      // ======================================================
+      // HANDLE COMMON MULTI-AI RESPONSE STRUCTURES
+      // ======================================================
+
+      if (
+        typeof aiResult === "object" &&
+        aiResult !== null
+      ) {
+
+        // ----------------------------------------------------
+        // Direct priority
+        // ----------------------------------------------------
+
+        if (aiResult.priority) {
+          const value = String(
+            aiResult.priority
+          ).trim();
+
+          const matchedPriority =
+            priorityValues.find(
+              (item) =>
+                item.toLowerCase() ===
+                value.toLowerCase()
+            );
+
+          if (matchedPriority) {
+            priorityVotes.push(
+              matchedPriority
+            );
+          }
+        }
+
+
+        // ----------------------------------------------------
+        // providers object
+        // ----------------------------------------------------
+
+        if (
+          aiResult.providers &&
+          typeof aiResult.providers === "object"
+        ) {
+          Object.values(
+            aiResult.providers
+          ).forEach((providerResult) => {
+
+            if (!providerResult) {
+              return;
+            }
+
+            if (
+              typeof providerResult === "object" &&
+              providerResult.priority
+            ) {
+              const value = String(
+                providerResult.priority
+              ).trim();
+
+              const matchedPriority =
+                priorityValues.find(
+                  (item) =>
+                    item.toLowerCase() ===
+                    value.toLowerCase()
+                );
+
+              if (matchedPriority) {
+                priorityVotes.push(
+                  matchedPriority
+                );
+              }
+            }
+
+            if (
+              typeof providerResult === "string"
+            ) {
+              const lower =
+                providerResult.toLowerCase();
+
+              priorityValues.forEach(
+                (item) => {
+                  if (
+                    lower.includes(
+                      item.toLowerCase()
+                    )
+                  ) {
+                    priorityVotes.push(item);
+                  }
+                }
+              );
+            }
+          });
+        }
+
+
+        // ----------------------------------------------------
+        // results array
+        // ----------------------------------------------------
+
+        if (Array.isArray(aiResult.results)) {
+          aiResult.results.forEach(
+            (providerResult) => {
+
+              if (!providerResult) {
+                return;
+              }
+
+              if (
+                typeof providerResult === "object" &&
+                providerResult.priority
+              ) {
+                const value = String(
+                  providerResult.priority
+                ).trim();
+
+                const matchedPriority =
+                  priorityValues.find(
+                    (item) =>
+                      item.toLowerCase() ===
+                      value.toLowerCase()
+                  );
+
+                if (matchedPriority) {
+                  priorityVotes.push(
+                    matchedPriority
+                  );
+                }
+              }
+
+              if (
+                typeof providerResult === "string"
+              ) {
+                const lower =
+                  providerResult.toLowerCase();
+
+                priorityValues.forEach(
+                  (item) => {
+                    if (
+                      lower.includes(
+                        item.toLowerCase()
+                      )
+                    ) {
+                      priorityVotes.push(item);
+                    }
+                  }
+                );
+              }
+            }
+          );
+        }
+      }
+
+
+      // ------------------------------------------------------
+      // String based priority extraction
+      // ------------------------------------------------------
+
+      if (typeof aiAnalysis === "string") {
+        const lowerAnalysis =
+          aiAnalysis.toLowerCase();
+
+        priorityValues.forEach(
+          (item) => {
+            if (
+              lowerAnalysis.includes(
+                `priority: ${item.toLowerCase()}`
+              ) ||
+              lowerAnalysis.includes(
+                `"priority": "${item.toLowerCase()}"`
+              )
+            ) {
+              priorityVotes.push(item);
+            }
+          }
+        );
+      }
+
+
+      // ======================================================
+      // MAJORITY VOTE
+      // ======================================================
+
+      if (priorityVotes.length > 0) {
+        const counts = {
+          Critical: 0,
+          High: 0,
+          Medium: 0,
+          Low: 0,
+        };
+
+        priorityVotes.forEach((vote) => {
+          if (counts[vote] !== undefined) {
+            counts[vote] += 1;
+          }
         });
 
-      aiPriority = "Medium";
+        priority = priorityValues.reduce(
+          (highest, current) => {
+            if (
+              counts[current] >
+              counts[highest]
+            ) {
+              return current;
+            }
+
+            return highest;
+          },
+          "Medium"
+        );
+      }
     }
 
-    // ========================================
+
+    // ========================================================
+    // SAFETY: ENSURE VALID PRIORITY
+    // ========================================================
+
+    const allowedPriorities = [
+      "Low",
+      "Medium",
+      "High",
+      "Critical",
+    ];
+
+    if (
+      !allowedPriorities.includes(priority)
+    ) {
+      priority = "Medium";
+    }
+
+
+    // ========================================================
+    // CREATE COMPLAINT
+    // ========================================================
+
+    const complaint = new Complaint({
+      userId: user._id,
+
+      category: complaintCategory,
+
+      description: complaintDescription,
+
+      imageUrl: imageUrl || "",
+
+      location: {
+        lat: latitude,
+        lng: longitude,
+      },
+
+      status: "Pending",
+
+      priority,
+
+      aiAnalysis,
+
+      reportedToGovernment: false,
+
+      reportedAt: null,
+    });
+
+
+    // ========================================================
     // SAVE COMPLAINT
-    // ========================================
+    // ========================================================
 
-    const complaint =
-      await Complaint.create({
+    await complaint.save();
 
-        userId,
 
-        category,
+    // ========================================================
+    // GOVERNMENT REPORT
+    // ========================================================
+    // High and Critical complaints are automatically sent
+    // through SMTP to GOVERNMENT_EMAIL.
+    //
+    // This is an email-based demo/fallback for the project.
+    // It is NOT a real government API integration.
+    // ========================================================
 
-        description,
+    if (
+      priority === "High" ||
+      priority === "Critical"
+    ) {
+      try {
+        const governmentResult =
+          await sendGovernmentReport(
+            complaint
+          );
 
-        imageUrl:
-          imageUrl || "",
+        if (
+          governmentResult &&
+          governmentResult.success === true
+        ) {
+          complaint.reportedToGovernment =
+            true;
 
-        location: {
-          lat: lat || null,
-          lng: lng || null
-        },
+          complaint.reportedAt =
+            new Date();
 
-        priority:
-          aiPriority,
+          await complaint.save();
 
-        aiAnalysis
-      });
+          console.log(
+            "Government report sent successfully."
+          );
 
-    console.log(
-      "Complaint saved:",
-      complaint._id
-    );
+          console.log(
+            "Complaint ID:",
+            complaint._id.toString()
+          );
 
-    // ========================================
-    // RESPONSE
-    // ========================================
+          console.log(
+            "Priority:",
+            complaint.priority
+          );
+        } else {
+          console.error(
+            "Government report failed:",
+            governmentResult?.error ||
+              "Unknown error"
+          );
+        }
+      } catch (governmentError) {
+        console.error(
+          "Government report error:",
+          governmentError
+        );
 
-    res.status(201).json({
+        // Important:
+        // Complaint is already saved.
+        // Government email failure must not delete
+        // the user's complaint.
+      }
+    }
 
+
+    // ========================================================
+    // RETURN SUCCESS
+    // ========================================================
+
+    return res.status(201).json({
       success: true,
-
       message:
-        "Complaint submitted successfully",
+        "Complaint submitted successfully.",
 
-      complaint
+      complaint: {
+        _id: complaint._id,
+        userId: complaint.userId,
+        category: complaint.category,
+        description: complaint.description,
+        imageUrl: complaint.imageUrl,
+        location: complaint.location,
+        status: complaint.status,
+        priority: complaint.priority,
+        aiAnalysis: complaint.aiAnalysis,
+        reportedToGovernment:
+          complaint.reportedToGovernment,
+        reportedAt:
+          complaint.reportedAt,
+        createdAt: complaint.createdAt,
+      },
     });
 
   } catch (error) {
-
     console.error(
-      "Complaint Error:",
+      "Create complaint error:",
       error
     );
 
-    res.status(500).json({
-
+    return res.status(500).json({
       success: false,
-
       message:
-        error.message
+        "Failed to submit complaint.",
     });
   }
 });
 
-// ========================================
+
+// ============================================================
 // UPDATE COMPLAINT STATUS
-// ========================================
+// ============================================================
 
 router.put("/:id/status", async (req, res) => {
-
   try {
+    const { id } = req.params;
+    const { status } = req.body;
 
-    const { status } =
-      req.body;
+
+    // ========================================================
+    // VALIDATE COMPLAINT ID
+    // ========================================================
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+
+    // ========================================================
+    // VALIDATE STATUS
+    // ========================================================
 
     const allowedStatuses = [
       "Pending",
       "In Progress",
-      "Resolved"
+      "Resolved",
     ];
 
     if (
-      !allowedStatuses.includes(
-        status
-      )
+      !status ||
+      !allowedStatuses.includes(status)
     ) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
-          "Invalid status"
+          "Invalid complaint status.",
       });
     }
+
+
+    // ========================================================
+    // FIND COMPLAINT
+    // ========================================================
 
     const complaint =
-      await Complaint.findByIdAndUpdate(
-
-        req.params.id,
-
-        { status },
-
-        { new: true }
-      );
+      await Complaint.findById(id);
 
     if (!complaint) {
-
       return res.status(404).json({
-
         success: false,
-
         message:
-          "Complaint not found"
+          "Complaint not found.",
       });
     }
 
-    res.json({
 
+    // ========================================================
+    // UPDATE STATUS
+    // ========================================================
+
+    complaint.status = status;
+
+    await complaint.save();
+
+
+    // ========================================================
+    // RETURN UPDATED COMPLAINT
+    // ========================================================
+
+    return res.json({
       success: true,
-
       message:
-        "Complaint status updated",
+        "Complaint status updated successfully.",
 
-      complaint
+      complaint,
     });
 
   } catch (error) {
-
     console.error(
-      "Status Update Error:",
+      "Update complaint status error:",
       error
     );
 
-    res.status(500).json({
-
+    return res.status(500).json({
       success: false,
-
       message:
-        "Failed to update status"
+        "Failed to update complaint status.",
     });
   }
 });
+
+
+// ============================================================
+// EXPORT ROUTER
+// ============================================================
 
 module.exports = router;
