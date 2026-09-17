@@ -5,28 +5,29 @@ const feedbackSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
 
     complaintId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Complaint"
+      ref: "Complaint",
+      required: true,
     },
 
     rating: {
       type: Number,
       min: 1,
       max: 5,
-      required: true
+      required: true,
     },
 
     message: {
       type: String,
-      default: ""
-    }
+      default: "",
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 

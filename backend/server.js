@@ -1,7 +1,7 @@
 const express = require("express");
+const feedbackRoutes = require("./routes/feedback");
 const cors = require("cors");
 const mongoose = require("mongoose");
-
 const complaintRoutes = require("./routes/complaints");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
@@ -30,6 +30,7 @@ app.use("/api/claude", claudeRoutes);
 app.use("/api/zai", zaiRoutes);
 app.use("/api/openrouter", openrouterRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 // Test route
 app.get("/test", (req, res) => {
@@ -57,6 +58,9 @@ app.get("/api/health", (req, res) => {
 // Port
 const PORT = process.env.PORT || 5000;
 
+console.log("MongoDB URI exists:", !!process.env.MONGODB_URI);
+console.log("MongoDB URI host:", process.env.MONGODB_URI?.split("@")[1]?.split("/")[0]);
+
 // MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -73,6 +77,8 @@ mongoose
 // Export app for Vercel
 module.exports = app;
 
+// Vercel deployment trigger
+
 // Start server only when running locally
 if (require.main === module) {
   app.listen(PORT, () => {
@@ -81,4 +87,3 @@ if (require.main === module) {
     );
   });
 }
-// deployment update
